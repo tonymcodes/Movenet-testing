@@ -37,7 +37,7 @@
   }
 
   /* Stage is enlarged but still leaves room for the controls below it
-     within one portrait screen. Only the .hint is pushed below the fold. */
+     within one portrait screen. */
   .stage {
     position: relative;
     width: 860px; max-width: 100%;
@@ -97,7 +97,7 @@
   .countdown .num.go { font-size: 130px; animation: none; }
 
   .controls {
-    width: 860px; max-width: 100%; margin-top: 14px;
+    width: 860px; max-width: 100%; margin-top: 18px;
     display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
   }
   .exercise-picker { display: flex; gap: 8px; flex: 1; min-width: 240px; }
@@ -163,9 +163,8 @@
     border-color: rgba(126,200,255,0.4);
   }
 
-  /* Large top margin pushes this below the fold — only seen on scroll. */
   .hint {
-    width: 720px; max-width: 100%; margin-top: 60vh;
+    width: 720px; max-width: 100%; margin-top: 16px;
     padding: 14px 16px; background: rgba(126,200,255,0.07);
     border: 1px solid rgba(126,200,255,0.15); border-radius: 14px;
     font-size: 12px; color: rgba(255,255,255,0.65); line-height: 1.7;
@@ -370,11 +369,10 @@ function drawSkeleton(keypoints, mirror) {
 function drawHud() {
   const w = canvas.width, h = canvas.height;
 
-  // The canvas is displayed with object-fit:cover, which crops the top and
-  // bottom (or sides) to fill the stage box. To keep HUD text from being
-  // clipped by that crop, we inset it generously from every edge.
-  const padX = Math.round(w * 0.055);
-  const padY = Math.round(h * 0.08);
+  // Inset HUD well away from the canvas edges so nothing sits cramped
+  // against the frame border.
+  const padX = Math.round(w * 0.085);
+  const padY = Math.round(h * 0.11);
   // Scale fonts off the smaller dimension so text stays large and legible.
   const scale = Math.min(w, h) / 480;
 
@@ -382,34 +380,34 @@ function drawHud() {
   ctx.save();
   const badgeText = recording ? 'REC' : (running ? 'TRACKING' : 'IDLE');
   const badgeDot = recording ? '#fff' : (running ? '#d4ff00' : '#888');
-  ctx.font = `800 ${Math.round(17*scale)}px Inter, sans-serif`;
+  ctx.font = `800 ${Math.round(22*scale)}px Inter, sans-serif`;
   const btw = ctx.measureText(badgeText).width;
-  const bW = btw + 50*scale, bH = 42*scale;
-  ctx.fillStyle = recording ? 'rgba(255,59,59,0.88)' : 'rgba(0,0,0,0.62)';
-  roundRect(padX, padY, bW, bH, 16*scale); ctx.fill();
+  const bW = btw + 58*scale, bH = 52*scale;
+  ctx.fillStyle = recording ? 'rgba(255,59,59,0.88)' : 'rgba(0,0,0,0.66)';
+  roundRect(padX, padY, bW, bH, 18*scale); ctx.fill();
   ctx.fillStyle = badgeDot;
   ctx.beginPath();
-  ctx.arc(padX + 20*scale, padY + bH/2, 6*scale, 0, Math.PI*2);
+  ctx.arc(padX + 24*scale, padY + bH/2, 7*scale, 0, Math.PI*2);
   ctx.fill();
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText(badgeText, padX + 34*scale, padY + bH/2 + scale);
+  ctx.fillText(badgeText, padX + 40*scale, padY + bH/2 + scale);
   ctx.restore();
 
   // --- Rep counter (top-right) ---
   ctx.save();
   ctx.textAlign = 'right';
   ctx.textBaseline = 'top';
-  ctx.fillStyle = 'rgba(255,255,255,0.75)';
-  ctx.font = `800 ${Math.round(18*scale)}px Inter, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = `800 ${Math.round(24*scale)}px Inter, sans-serif`;
   ctx.fillText('REPS', w - padX, padY);
   const popScale = 1 + hud.repPop * 0.25;
-  ctx.font = `400 ${Math.round(120 * scale * popScale)}px 'Bebas Neue', sans-serif`;
+  ctx.font = `400 ${Math.round(150 * scale * popScale)}px 'Bebas Neue', sans-serif`;
   ctx.fillStyle = '#d4ff00';
   ctx.shadowColor = 'rgba(212,255,0,0.7)';
-  ctx.shadowBlur = 26 * scale;
-  ctx.fillText(String(reps).padStart(2,'0'), w - padX, padY + 22*scale);
+  ctx.shadowBlur = 30 * scale;
+  ctx.fillText(String(reps).padStart(2,'0'), w - padX, padY + 30*scale);
   ctx.restore();
   if (hud.repPop > 0) hud.repPop = Math.max(0, hud.repPop - 0.12);
 
@@ -417,19 +415,19 @@ function drawHud() {
   ctx.save();
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.font = `800 ${Math.round(22*scale)}px 'JetBrains Mono', monospace`;
+  ctx.font = `800 ${Math.round(28*scale)}px 'JetBrains Mono', monospace`;
   const stw = ctx.measureText(hud.stateLabel).width;
-  const stBoxW = Math.max(stw + 34*scale, 150*scale);
-  const stBoxH = 62*scale;
-  ctx.fillStyle = 'rgba(0,0,0,0.66)';
-  roundRect(padX, h - padY - stBoxH, stBoxW, stBoxH, 14*scale);
+  const stBoxW = Math.max(stw + 40*scale, 180*scale);
+  const stBoxH = 78*scale;
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  roundRect(padX, h - padY - stBoxH, stBoxW, stBoxH, 16*scale);
   ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
-  ctx.font = `700 ${Math.round(13*scale)}px Inter, sans-serif`;
-  ctx.fillText('FORM STATE', padX + 17*scale, h - padY - stBoxH + 24*scale);
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = `700 ${Math.round(16*scale)}px Inter, sans-serif`;
+  ctx.fillText('FORM STATE', padX + 20*scale, h - padY - stBoxH + 30*scale);
   ctx.fillStyle = hud.stateColor;
-  ctx.font = `800 ${Math.round(22*scale)}px 'JetBrains Mono', monospace`;
-  ctx.fillText(hud.stateLabel, padX + 17*scale, h - padY - 16*scale);
+  ctx.font = `800 ${Math.round(28*scale)}px 'JetBrains Mono', monospace`;
+  ctx.fillText(hud.stateLabel, padX + 20*scale, h - padY - 20*scale);
   ctx.restore();
 
   // --- Angle (bottom-right) ---
@@ -438,19 +436,19 @@ function drawHud() {
   ctx.textBaseline = 'alphabetic';
   const ex = EXERCISES[currentEx];
   const angleStr = hud.angle == null ? '\u2014' : Math.round(hud.angle) + '\u00B0';
-  ctx.font = `800 ${Math.round(34*scale)}px 'JetBrains Mono', monospace`;
+  ctx.font = `800 ${Math.round(44*scale)}px 'JetBrains Mono', monospace`;
   const atw = ctx.measureText(angleStr).width;
-  const anBoxW = Math.max(atw + 34*scale, 130*scale);
-  const anBoxH = 68*scale;
-  ctx.fillStyle = 'rgba(0,0,0,0.66)';
-  roundRect(w - padX - anBoxW, h - padY - anBoxH, anBoxW, anBoxH, 14*scale);
+  const anBoxW = Math.max(atw + 40*scale, 160*scale);
+  const anBoxH = 86*scale;
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  roundRect(w - padX - anBoxW, h - padY - anBoxH, anBoxW, anBoxH, 16*scale);
   ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
-  ctx.font = `700 ${Math.round(13*scale)}px Inter, sans-serif`;
-  ctx.fillText(ex.label + ' ANGLE', w - padX - 17*scale, h - padY - anBoxH + 24*scale);
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = `700 ${Math.round(16*scale)}px Inter, sans-serif`;
+  ctx.fillText(ex.label + ' ANGLE', w - padX - 20*scale, h - padY - anBoxH + 30*scale);
   ctx.fillStyle = '#d4ff00';
-  ctx.font = `800 ${Math.round(34*scale)}px 'JetBrains Mono', monospace`;
-  ctx.fillText(angleStr, w - padX - 17*scale, h - padY - 18*scale);
+  ctx.font = `800 ${Math.round(44*scale)}px 'JetBrains Mono', monospace`;
+  ctx.fillText(angleStr, w - padX - 20*scale, h - padY - 22*scale);
   ctx.restore();
 }
 
@@ -687,11 +685,12 @@ function flashStatus(msg) {
 }
 
 // ---------- Screenshot ----------
+// Captures the canvas — camera feed + skeleton + HUD readouts.
 async function takeScreenshot() {
   if (!running) { flashStatus('Start the camera first.'); return; }
   shotBtn.disabled = true; clipBtn.disabled = true;
   await runCountdown(captureDelay);
-  await new Promise(r => requestAnimationFrame(r));
+  await new Promise(r => requestAnimationFrame(r));   // grab next fresh frame
   canvas.toBlob((blob) => {
     if (blob) downloadBlob(blob, `repcounter-${timestamp()}.png`);
     flashStatus('Screenshot saved \u2713');
@@ -700,6 +699,7 @@ async function takeScreenshot() {
 }
 
 // ---------- Video clip ----------
+// Records the canvas stream (feed + skeleton + moving rep counter).
 async function recordClip() {
   if (!running) { flashStatus('Start the camera first.'); return; }
   if (recording) return;
