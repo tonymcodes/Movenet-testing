@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FORGE · Motion Tracker Prototype</title>
+<title>Rep Counter · Motion Tracker Prototype</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -17,110 +17,54 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px;
+    padding: 16px;
   }
 
-  header { text-align: center; margin-bottom: 18px; }
+  header { text-align: center; margin-bottom: 12px; }
   header .logo {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 42px;
-    color: #d4ff00;
-    line-height: 1;
+    font-size: 34px; color: #d4ff00; line-height: 1;
   }
-  header p { color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 4px; }
+  header p { color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 3px; }
   header .model-tag {
-    display: inline-block;
-    margin-top: 8px;
+    display: inline-block; margin-top: 6px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #7ec8ff;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: #7ec8ff;
     background: rgba(126,200,255,0.1);
     border: 1px solid rgba(126,200,255,0.2);
-    padding: 4px 10px;
-    border-radius: 999px;
+    padding: 4px 10px; border-radius: 999px;
   }
 
+  /* Stage is enlarged but still leaves room for the controls below it
+     within one portrait screen. Only the .hint is pushed below the fold. */
   .stage {
     position: relative;
-    width: 720px;
-    max-width: 100%;
-    aspect-ratio: 4 / 3;
+    width: 860px; max-width: 100%;
+    height: min(56vh, 720px);
     background: #11141d;
-    border-radius: 24px;
-    overflow: hidden;
+    border-radius: 24px; overflow: hidden;
     border: 1px solid rgba(255,255,255,0.08);
     box-shadow: 0 40px 80px -20px rgba(0,0,0,0.6);
   }
 
   video, canvas {
-    position: absolute;
-    top: 0; left: 0;
+    position: absolute; top: 0; left: 0;
     width: 100%; height: 100%;
     object-fit: cover;
   }
   /* video stays hidden — its frames are painted onto the canvas */
   video { visibility: hidden; }
 
-  .overlay { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
-
-  .rep-counter { position: absolute; top: 20px; right: 24px; text-align: right; }
-  .rep-counter .label {
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 2px; color: rgba(255,255,255,0.55);
-  }
-  .rep-counter .count {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 96px; line-height: 0.9;
-    color: #d4ff00; text-shadow: 0 0 24px rgba(212,255,0,0.5);
-    transition: transform 0.12s;
-  }
-  .rep-counter .count.pop { transform: scale(1.18); }
-
-  .badge {
-    position: absolute; top: 20px; left: 24px;
-    display: flex; align-items: center; gap: 8px;
-    background: rgba(0,0,0,0.55); backdrop-filter: blur(10px);
-    padding: 8px 14px; border-radius: 999px;
-  }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: #ff3b3b; }
-  .badge.live .dot { animation: blink 1.4s infinite; }
-  @keyframes blink { 50% { opacity: 0.25; } }
-  .badge span {
-    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
-  }
-
-  .state-box {
-    position: absolute; bottom: 20px; left: 24px;
-    background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-    padding: 10px 14px; border-radius: 14px;
-  }
-  .state-box .label, .angle-box .label {
-    font-size: 9px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 2px; color: rgba(255,255,255,0.5);
-  }
-  .state-box .value {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 15px; font-weight: 700; margin-top: 2px;
-  }
-
-  .angle-box {
-    position: absolute; bottom: 20px; right: 24px;
-    background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-    padding: 10px 14px; border-radius: 14px; text-align: right;
-  }
-  .angle-box .value {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 22px; font-weight: 700; color: #d4ff00; margin-top: 2px;
-  }
+  /* All readouts (reps, state, angle, badge) are painted directly onto
+     the canvas by drawHud(), so screenshots and recordings include them.
+     Only transient messages and the countdown remain as DOM elements. */
 
   .status-msg {
     position: absolute; top: 50%; left: 50%;
     transform: translate(-50%,-50%); text-align: center;
     color: rgba(255,255,255,0.6); font-size: 14px; width: 80%;
-    line-height: 1.6;
+    line-height: 1.6; z-index: 20;
   }
   .status-msg.hidden { display: none; }
   .spinner {
@@ -130,8 +74,43 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* Big countdown number — readable from across the room */
+  .countdown {
+    position: absolute; inset: 0; z-index: 30;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(10,13,20,0.45); pointer-events: none;
+  }
+  .countdown.show { display: flex; }
+  .countdown .num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 220px; line-height: 1; color: #d4ff00;
+    text-shadow: 0 0 50px rgba(212,255,0,0.7);
+    animation: count-pulse 1s ease-out infinite;
+  }
+  @keyframes count-pulse {
+    0% { transform: scale(0.7); opacity: 0.4; }
+    40% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.85; }
+  }
+  .countdown .num.go { font-size: 130px; animation: none; }
+
+  /* Reset button overlaid on the canvas, just below the painted rep
+     count in the top-right corner — so it sits next to the number. */
+  .reset-overlay {
+    position: absolute; z-index: 22;
+    top: 96px; right: 16px;
+    padding: 7px 14px; border-radius: 10px;
+    background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+    border: 1px solid rgba(212,255,0,0.35);
+    color: #d4ff00; font-family: 'Inter', sans-serif;
+    font-size: 11px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 1px; cursor: pointer; transition: all 0.15s;
+  }
+  .reset-overlay:hover { background: rgba(212,255,0,0.15); }
+  .reset-overlay:active { transform: scale(0.94); }
+
   .controls {
-    width: 720px; max-width: 100%; margin-top: 18px;
+    width: 860px; max-width: 100%; margin-top: 14px;
     display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
   }
   .exercise-picker { display: flex; gap: 8px; flex: 1; min-width: 240px; }
@@ -145,6 +124,7 @@
   .ex-btn:hover { background: rgba(255,255,255,0.07); }
   .ex-btn.active { background: #d4ff00; color: #0a0d14; border-color: #d4ff00; }
 
+  /* Primary actions — prominent */
   .action-btn {
     padding: 13px 22px; border-radius: 14px; border: none;
     font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 800;
@@ -159,8 +139,46 @@
   }
   .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+  /* Capture row — deliberately subtle, secondary to the main controls */
+  .capture-row {
+    width: 860px; max-width: 100%; margin-top: 10px;
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    justify-content: flex-end;
+  }
+  .capture-row .cap-label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: rgba(255,255,255,0.28);
+    margin-right: auto;
+  }
+  /* Small, low-contrast capture buttons */
+  .cap-btn {
+    padding: 7px 12px; border-radius: 9px;
+    background: transparent; border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.5); font-family: 'Inter', sans-serif;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; display: flex; align-items: center; gap: 5px;
+  }
+  .cap-btn:hover {
+    background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8);
+  }
+  .cap-btn:active { transform: scale(0.95); }
+  .cap-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .cap-btn.recording { border-color: #ff3b3b; color: #ff3b3b; }
+  .delay-mini { display: flex; gap: 3px; align-items: center; }
+  .delay-mini .dchip {
+    padding: 6px 8px; border-radius: 7px;
+    background: transparent; border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.4); font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; font-weight: 700; cursor: pointer; transition: all 0.15s;
+  }
+  .delay-mini .dchip.active {
+    background: rgba(126,200,255,0.15); color: #7ec8ff;
+    border-color: rgba(126,200,255,0.4);
+  }
+
+  /* Large top margin pushes this below the fold — only seen on scroll. */
   .hint {
-    width: 720px; max-width: 100%; margin-top: 14px;
+    width: 720px; max-width: 100%; margin-top: 60vh;
     padding: 14px 16px; background: rgba(126,200,255,0.07);
     border: 1px solid rgba(126,200,255,0.15); border-radius: 14px;
     font-size: 12px; color: rgba(255,255,255,0.65); line-height: 1.7;
@@ -176,7 +194,7 @@
 <body>
 
 <header>
-  <div class="logo">FORGE</div>
+  <div class="logo">REP COUNTER</div>
   <p>Motion Tracker Prototype</p>
   <div class="model-tag">TensorFlow.js · MoveNet Lightning</div>
 </header>
@@ -184,27 +202,13 @@
 <div class="stage">
   <video id="video" playsinline muted></video>
   <canvas id="canvas"></canvas>
-  <div class="overlay">
-    <div class="badge" id="badge">
-      <div class="dot"></div>
-      <span id="badge-text">Camera off</span>
-    </div>
-    <div class="rep-counter">
-      <div class="label">Reps</div>
-      <div class="count" id="rep-count">00</div>
-    </div>
-    <div class="state-box">
-      <div class="label">Form State</div>
-      <div class="value" id="state-text">&mdash;</div>
-    </div>
-    <div class="angle-box">
-      <div class="label" id="angle-label">Knee Angle</div>
-      <div class="value" id="angle-value">&mdash;</div>
-    </div>
-    <div class="status-msg" id="status">
-      Press <b style="color:#d4ff00">Start Camera</b> and allow camera access.<br>
-      Stand back so your full body is visible to the camera.
-    </div>
+  <button class="reset-overlay" id="reset-btn">&#8635; Reset</button>
+  <div class="status-msg" id="status">
+    Press <b style="color:#d4ff00">Start Camera</b> and allow camera access.<br>
+    Stand back so your full body is visible to the camera.
+  </div>
+  <div class="countdown" id="countdown">
+    <div class="num" id="countdown-num">5</div>
   </div>
 </div>
 
@@ -212,11 +216,21 @@
   <div class="exercise-picker">
     <button class="ex-btn active" data-ex="squat">Squat</button>
     <button class="ex-btn" data-ex="curl">Bicep Curl</button>
-    <button class="ex-btn" data-ex="pushup">Push-up</button>
+    <button class="ex-btn" data-ex="ohpress">Overhead Press</button>
   </div>
   <button class="action-btn primary" id="start-btn">Start Camera</button>
   <button class="action-btn ghost" id="flip-btn">Flip Camera</button>
-  <button class="action-btn ghost" id="reset-btn">Reset Reps</button>
+</div>
+
+<div class="capture-row">
+  <span class="cap-label">Capture</span>
+  <div class="delay-mini" id="delay-mini">
+    <button class="dchip" data-delay="3">3s</button>
+    <button class="dchip active" data-delay="5">5s</button>
+    <button class="dchip" data-delay="10">10s</button>
+  </div>
+  <button class="cap-btn" id="shot-btn">&#9711; Screenshot</button>
+  <button class="cap-btn" id="clip-btn">&#9658; Record clip</button>
 </div>
 
 <div class="hint">
@@ -224,8 +238,8 @@
   For the chosen exercise this prototype picks 3 keypoints (e.g. <code>hip &rarr; knee &rarr; ankle</code>
   for squats), computes the joint angle with <code>atan2</code>, then a two-state machine
   (<b>UP</b> &rlarr; <b>DOWN</b>) counts a rep each time the angle crosses both thresholds.
-  Keypoints below a confidence score are ignored to reduce jitter. Everything runs
-  on-device &mdash; no video leaves your browser.
+  The rep counter and stats are drawn onto the canvas, so screenshots and clips
+  include the moving counts and overlay. Everything runs on-device &mdash; nothing is uploaded.
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
@@ -240,13 +254,11 @@ const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('start-btn');
 const flipBtn = document.getElementById('flip-btn');
 const resetBtn = document.getElementById('reset-btn');
+const shotBtn = document.getElementById('shot-btn');
+const clipBtn = document.getElementById('clip-btn');
 const statusEl = document.getElementById('status');
-const badge = document.getElementById('badge');
-const badgeText = document.getElementById('badge-text');
-const repCountEl = document.getElementById('rep-count');
-const stateTextEl = document.getElementById('state-text');
-const angleValueEl = document.getElementById('angle-value');
-const angleLabelEl = document.getElementById('angle-label');
+const countdownEl = document.getElementById('countdown');
+const countdownNum = document.getElementById('countdown-num');
 
 // MoveNet 17-keypoint indices
 const KP = {
@@ -266,23 +278,10 @@ const SKELETON = [
   ['nose','left_shoulder'], ['nose','right_shoulder']
 ];
 
-// Each exercise: the 3 joints forming the tracked angle + state-machine thresholds
 const EXERCISES = {
-  squat: {
-    label: 'Knee Angle',
-    joints: ['left_hip','left_knee','left_ankle'],
-    downBelow: 100, upAbove: 160
-  },
-  curl: {
-    label: 'Elbow Angle',
-    joints: ['left_shoulder','left_elbow','left_wrist'],
-    downBelow: 55, upAbove: 150
-  },
-  pushup: {
-    label: 'Elbow Angle',
-    joints: ['left_shoulder','left_elbow','left_wrist'],
-    downBelow: 95, upAbove: 160
-  }
+  squat:   { label: 'KNEE',  joints: ['left_hip','left_knee','left_ankle'],       downBelow: 100, upAbove: 160 },
+  curl:    { label: 'ELBOW', joints: ['left_shoulder','left_elbow','left_wrist'], downBelow: 55,  upAbove: 150 },
+  ohpress: { label: 'ELBOW', joints: ['left_shoulder','left_elbow','left_wrist'], downBelow: 90,  upAbove: 165 }
 };
 
 const CONFIDENCE = 0.3;
@@ -291,9 +290,18 @@ let currentEx = 'squat';
 let reps = 0;
 let state = 'up';
 let running = false;
-let facingMode = 'user';   // 'user' = front camera, 'environment' = back camera
+let facingMode = 'user';
 
-// Angle at vertex b formed by points a-b-c
+// HUD values — kept in JS, painted onto the canvas every frame
+let hud = { angle: null, stateLabel: '\u2014', stateColor: '#d4ff00', repPop: 0 };
+
+// Capture state
+let captureDelay = 5;          // countdown seconds before capture fires
+const CLIP_DURATION = 3;       // recorded clip length (~one rep)
+let mediaRecorder = null;
+let recording = false;
+
+// ---------- Geometry ----------
 function angle(a, b, c) {
   const ab = Math.atan2(a.y - b.y, a.x - b.x);
   const cb = Math.atan2(c.y - b.y, c.x - b.x);
@@ -302,7 +310,7 @@ function angle(a, b, c) {
   return deg;
 }
 
-// Two-state rep counter
+// ---------- Rep state machine ----------
 function updateReps(ang) {
   const ex = EXERCISES[currentEx];
   if (state === 'up' && ang < ex.downBelow) {
@@ -310,38 +318,31 @@ function updateReps(ang) {
   } else if (state === 'down' && ang > ex.upAbove) {
     state = 'up';
     reps++;
-    repCountEl.textContent = String(reps).padStart(2, '0');
-    repCountEl.classList.add('pop');
-    setTimeout(() => repCountEl.classList.remove('pop'), 120);
+    hud.repPop = 1;   // brief scale-up animation of the rep number
   }
-  stateTextEl.textContent = state === 'down' ? '\u25BC DOWN' : '\u25B2 UP';
-  stateTextEl.style.color = state === 'down' ? '#7ec8ff' : '#d4ff00';
+  hud.stateLabel = state === 'down' ? '\u25BC DOWN' : '\u25B2 UP';
+  hud.stateColor = state === 'down' ? '#7ec8ff' : '#d4ff00';
 }
 
-function draw(keypoints) {
+// ---------- Drawing ----------
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawSkeleton(keypoints, mirror) {
   const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0, 0, w, h);
-
-  // --- Paint the live camera frame onto the canvas ---
-  // Front camera ('user') is mirrored so it feels like a mirror.
-  // Back camera ('environment') is shown as-is.
-  const mirror = facingMode === 'user';
-  ctx.save();
-  if (mirror) {
-    ctx.translate(w, 0);
-    ctx.scale(-1, 1);
-  }
-  ctx.drawImage(video, 0, 0, w, h);
-  ctx.restore();
-
   const sx = w / video.videoWidth;
   const sy = h / video.videoHeight;
-  // Map a keypoint's x to canvas space, flipping it when the feed is mirrored
   const mx = (x) => mirror ? w - x * sx : x * sx;
   const my = (y) => y * sy;
 
-  // --- Skeleton bones ---
-  ctx.lineWidth = 4;
+  ctx.lineWidth = Math.max(3, w / 180);
   ctx.strokeStyle = '#d4ff00';
   ctx.lineCap = 'round';
   for (const [p1, p2] of SKELETON) {
@@ -353,12 +354,11 @@ function draw(keypoints) {
       ctx.stroke();
     }
   }
-
-  // --- Joints ---
+  const r = Math.max(4, w / 130);
   for (const kp of keypoints) {
     if (kp && kp.score > CONFIDENCE) {
       ctx.beginPath();
-      ctx.arc(mx(kp.x), my(kp.y), 6, 0, Math.PI * 2);
+      ctx.arc(mx(kp.x), my(kp.y), r, 0, Math.PI * 2);
       ctx.fillStyle = '#fff';
       ctx.fill();
       ctx.lineWidth = 2.5;
@@ -366,13 +366,11 @@ function draw(keypoints) {
       ctx.stroke();
     }
   }
-
-  // --- Ring the tracked vertex joint ---
   const ex = EXERCISES[currentEx];
   const vertex = keypoints[KP[ex.joints[1]]];
   if (vertex && vertex.score > CONFIDENCE) {
     ctx.beginPath();
-    ctx.arc(mx(vertex.x), my(vertex.y), 16, 0, Math.PI * 2);
+    ctx.arc(mx(vertex.x), my(vertex.y), r * 2.6, 0, Math.PI * 2);
     ctx.lineWidth = 2;
     ctx.strokeStyle = '#7ec8ff';
     ctx.setLineDash([4, 4]);
@@ -381,116 +379,175 @@ function draw(keypoints) {
   }
 }
 
-// Throttle detection to ~30fps. Running MoveNet on every animation frame
-// (often 60-120fps) overloads the WebGL backend and causes freezes.
-const DETECT_INTERVAL = 33;   // ms between pose estimations (~30fps)
+// Draw HUD (badge / reps / state / angle) directly onto the canvas
+function drawHud() {
+  const w = canvas.width, h = canvas.height;
+  const pad = Math.round(w * 0.03);
+  const scale = w / 720;
+
+  // --- Badge / REC indicator (top-left) ---
+  ctx.save();
+  const badgeText = recording ? 'REC' : (running ? 'TRACKING' : 'IDLE');
+  const badgeDot = recording ? '#fff' : (running ? '#d4ff00' : '#888');
+  ctx.font = `800 ${Math.round(11*scale)}px Inter, sans-serif`;
+  const btw = ctx.measureText(badgeText).width;
+  const bW = btw + 34*scale, bH = 28*scale;
+  ctx.fillStyle = recording ? 'rgba(255,59,59,0.85)' : 'rgba(0,0,0,0.55)';
+  roundRect(pad, pad, bW, bH, 14*scale); ctx.fill();
+  ctx.fillStyle = badgeDot;
+  ctx.beginPath();
+  ctx.arc(pad + 14*scale, pad + bH/2, 4.5*scale, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(badgeText, pad + 24*scale, pad + bH/2 + scale);
+  ctx.restore();
+
+  // --- Rep counter (top-right) ---
+  ctx.save();
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.font = `700 ${Math.round(11*scale)}px Inter, sans-serif`;
+  ctx.fillText('REPS', w - pad, pad);
+  const popScale = 1 + hud.repPop * 0.25;
+  ctx.font = `400 ${Math.round(78 * scale * popScale)}px 'Bebas Neue', sans-serif`;
+  ctx.fillStyle = '#d4ff00';
+  ctx.shadowColor = 'rgba(212,255,0,0.6)';
+  ctx.shadowBlur = 20 * scale;
+  ctx.fillText(String(reps).padStart(2,'0'), w - pad, pad + 14*scale);
+  ctx.restore();
+  if (hud.repPop > 0) hud.repPop = Math.max(0, hud.repPop - 0.12);
+
+  // --- Form state (bottom-left) ---
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `800 ${Math.round(13*scale)}px 'JetBrains Mono', monospace`;
+  const stw = ctx.measureText(hud.stateLabel).width;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  roundRect(pad, h - pad - 40*scale, stw + 22*scale, 40*scale, 10*scale);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = `700 ${Math.round(8*scale)}px Inter, sans-serif`;
+  ctx.fillText('FORM STATE', pad + 11*scale, h - pad - 25*scale);
+  ctx.fillStyle = hud.stateColor;
+  ctx.font = `800 ${Math.round(13*scale)}px 'JetBrains Mono', monospace`;
+  ctx.fillText(hud.stateLabel, pad + 11*scale, h - pad - 10*scale);
+  ctx.restore();
+
+  // --- Angle (bottom-right) ---
+  ctx.save();
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'alphabetic';
+  const ex = EXERCISES[currentEx];
+  const angleStr = hud.angle == null ? '\u2014' : Math.round(hud.angle) + '\u00B0';
+  ctx.font = `800 ${Math.round(20*scale)}px 'JetBrains Mono', monospace`;
+  const atw = ctx.measureText(angleStr).width;
+  const boxW = Math.max(atw, 60*scale) + 22*scale;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  roundRect(w - pad - boxW, h - pad - 44*scale, boxW, 44*scale, 10*scale);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = `700 ${Math.round(8*scale)}px Inter, sans-serif`;
+  ctx.fillText(ex.label + ' ANGLE', w - pad - 11*scale, h - pad - 27*scale);
+  ctx.fillStyle = '#d4ff00';
+  ctx.font = `800 ${Math.round(20*scale)}px 'JetBrains Mono', monospace`;
+  ctx.fillText(angleStr, w - pad - 11*scale, h - pad - 9*scale);
+  ctx.restore();
+}
+
+// Full frame: camera + skeleton + HUD
+function renderFrame(keypoints) {
+  const w = canvas.width, h = canvas.height;
+  const mirror = facingMode === 'user';
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  if (mirror) { ctx.translate(w, 0); ctx.scale(-1, 1); }
+  ctx.drawImage(video, 0, 0, w, h);
+  ctx.restore();
+  if (keypoints && keypoints.length) drawSkeleton(keypoints, mirror);
+  drawHud();
+}
+
+// ---------- Detection loop ----------
+const DETECT_INTERVAL = 33;
 let lastDetect = 0;
 let consecutiveErrors = 0;
 
 async function detectFrame(timestamp) {
   if (!running) return;
-
-  // Always schedule the next frame FIRST, before anything that can throw.
-  // This guarantees the loop survives even if this frame fails.
   requestAnimationFrame(detectFrame);
 
-  // Skip this frame if it's too soon, or the video isn't producing pixels yet.
   if (timestamp - lastDetect < DETECT_INTERVAL) return;
   if (video.readyState < 2 || video.videoWidth === 0) return;
   lastDetect = timestamp;
 
   try {
     const poses = await detector.estimatePoses(video, { flipHorizontal: false });
-    consecutiveErrors = 0;   // a good frame resets the error counter
+    consecutiveErrors = 0;
 
     if (poses.length > 0) {
       const kps = poses[0].keypoints;
-      draw(kps);
-
       const ex = EXERCISES[currentEx];
-      const [j1, j2, j3] = ex.joints.map(name => kps[KP[name]]);
+      const [j1, j2, j3] = ex.joints.map(n => kps[KP[n]]);
       if (j1.score > CONFIDENCE && j2.score > CONFIDENCE && j3.score > CONFIDENCE) {
         const ang = angle(j1, j2, j3);
-        angleValueEl.textContent = Math.round(ang) + '\u00B0';
+        hud.angle = ang;
         updateReps(ang);
       } else {
-        angleValueEl.textContent = '\u2014';
-        stateTextEl.textContent = 'joint not visible';
-        stateTextEl.style.color = 'rgba(255,255,255,0.5)';
+        hud.angle = null;
+        hud.stateLabel = 'joint not visible';
+        hud.stateColor = 'rgba(255,255,255,0.6)';
       }
+      renderFrame(kps);
     } else {
-      draw([]);   // no body — still paint the camera feed
-      angleValueEl.textContent = '\u2014';
-      stateTextEl.textContent = 'no body in frame';
-      stateTextEl.style.color = 'rgba(255,255,255,0.5)';
+      hud.angle = null;
+      hud.stateLabel = 'no body in frame';
+      hud.stateColor = 'rgba(255,255,255,0.6)';
+      renderFrame([]);
     }
   } catch (err) {
-    // One bad frame is normal (dropped WebGL buffer, etc.) — just skip it.
-    // Only surface an error if many fail in a row, which means a real problem.
     consecutiveErrors++;
-    console.warn('pose estimation frame failed:', err.message);
-    if (consecutiveErrors > 30) {
-      stateTextEl.textContent = 'tracking error \u2014 restarting';
-      stateTextEl.style.color = '#ff3b3b';
-      consecutiveErrors = 0;
-    }
-    // still paint the raw camera frame so the screen doesn't go dark
-    try { draw([]); } catch (e) {}
+    console.warn('pose frame failed:', err.message);
+    try { renderFrame([]); } catch (e) {}
   }
 }
 
-// Open (or re-open) the camera with the current facingMode.
-// Robust against re-use: the video element can be re-streamed many times
-// (every flip), so we must reliably wait for the NEW stream to produce frames.
+// ---------- Camera ----------
 async function openCamera() {
-  // Fully release the previous stream first.
   if (video.srcObject) {
     video.srcObject.getTracks().forEach(t => t.stop());
     video.srcObject = null;
   }
-
-  // facingMode is a *preference* (ideal), not a hard requirement (exact).
-  // Using 'exact' makes getUserMedia throw on phones that label cameras
-  // unusually — 'ideal' lets the browser pick the closest match instead.
   const stream = await navigator.mediaDevices.getUserMedia({
     video: {
       facingMode: { ideal: facingMode },
-      width: { ideal: 640 },
-      height: { ideal: 480 }
+      width: { ideal: 640 }, height: { ideal: 480 }
     },
     audio: false
   });
-
   video.srcObject = stream;
 
-  // Wait until the video is actually producing pixels. We race several
-  // signals because no single one fires reliably across browsers on a
-  // re-used <video> element:
-  //   - 'loadedmetadata' / 'canplay' events
-  //   - a polling check on readyState
-  //   - a hard timeout so we never hang forever
   await new Promise((resolve, reject) => {
     let done = false;
     const finish = (ok, err) => {
       if (done) return;
-      done = true;
-      cleanup();
+      done = true; cleanup();
       ok ? resolve() : reject(err || new Error('camera timeout'));
     };
     const onReady = () => { if (video.videoWidth > 0) finish(true); };
     const cleanup = () => {
       video.removeEventListener('loadedmetadata', onReady);
       video.removeEventListener('canplay', onReady);
-      clearInterval(poll);
-      clearTimeout(timer);
+      clearInterval(poll); clearTimeout(timer);
     };
     video.addEventListener('loadedmetadata', onReady);
     video.addEventListener('canplay', onReady);
-    // Poll as a backstop — events sometimes fire before listeners attach.
     const poll = setInterval(onReady, 100);
     const timer = setTimeout(() => finish(false), 8000);
-    // Kick playback; some browsers need an explicit play() on re-use.
-    video.play().then(onReady).catch(() => {/* retried by poll */});
+    video.play().then(onReady).catch(() => {});
   });
 
   canvas.width = video.videoWidth;
@@ -501,20 +558,15 @@ async function start() {
   startBtn.disabled = true;
   statusEl.classList.remove('hidden');
   statusEl.innerHTML = '<div class="spinner"></div>Loading MoveNet model\u2026';
-
   try {
     await openCamera();
-
     await tf.setBackend('webgl');
     detector = await poseDetection.createDetector(
       poseDetection.SupportedModels.MoveNet,
       { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
     );
-
     running = true;
     statusEl.classList.add('hidden');
-    badge.classList.add('live');
-    badgeText.textContent = 'Tracking';
     startBtn.textContent = 'Stop';
     startBtn.disabled = false;
     startBtn.classList.remove('primary');
@@ -525,43 +577,29 @@ async function start() {
     statusEl.innerHTML = '\u26A0\uFE0F ' + (err.name === 'NotAllowedError'
       ? 'Camera permission denied. Allow camera access and reload.'
       : err.name === 'NotFoundError'
-      ? 'No camera matching that facing mode was found.'
+      ? 'No camera found.'
       : 'Could not start: ' + err.message);
     startBtn.disabled = false;
   }
 }
 
-// Flip between front and back camera. Works whether or not tracking is running.
 async function flipCamera() {
   facingMode = facingMode === 'user' ? 'environment' : 'user';
   flipBtn.textContent = facingMode === 'user' ? 'Back Camera' : 'Front Camera';
-  if (!running) return;   // nothing live yet — toggle takes effect on next Start
-
+  if (!running) return;
   flipBtn.disabled = true;
-  // Pause the detection loop while the camera is being swapped, so we never
-  // run pose estimation against a video element that's mid-teardown.
   running = false;
   statusEl.classList.remove('hidden');
   statusEl.innerHTML = '<div class="spinner"></div>Switching camera\u2026';
-
   try {
     await openCamera();
   } catch (err) {
-    // Revert facingMode and try to restore the previous camera.
     facingMode = facingMode === 'user' ? 'environment' : 'user';
     flipBtn.textContent = facingMode === 'user' ? 'Back Camera' : 'Front Camera';
-    statusEl.innerHTML = '\u26A0\uFE0F Could not switch camera \u2014 this device may have only one.';
+    statusEl.innerHTML = '\u26A0\uFE0F Could not switch camera \u2014 device may have only one.';
     try { await openCamera(); } catch (e) {}
     setTimeout(() => { if (running) statusEl.classList.add('hidden'); }, 2000);
-    flipBtn.disabled = false;
-    // Resume the loop on whatever camera we ended up with.
-    running = true;
-    lastDetect = 0;
-    requestAnimationFrame(detectFrame);
-    return;
   }
-
-  // Success — hide status, resume detection on the new camera.
   statusEl.classList.add('hidden');
   flipBtn.disabled = false;
   running = true;
@@ -573,8 +611,6 @@ function stop() {
   running = false;
   if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  badge.classList.remove('live');
-  badgeText.textContent = 'Camera off';
   startBtn.textContent = 'Start Camera';
   startBtn.classList.add('primary');
   startBtn.classList.remove('ghost');
@@ -582,15 +618,145 @@ function stop() {
   statusEl.innerHTML = 'Camera stopped. Press <b style="color:#d4ff00">Start Camera</b> to resume.';
 }
 
+// ---------- Audio cue ----------
+let audioCtx = null;
+function beep(freq, dur) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = freq;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + dur);
+  } catch (e) { /* audio unavailable — silent is fine */ }
+}
+
+// ---------- Countdown (shared by screenshot & clip) ----------
+function runCountdown(seconds) {
+  return new Promise((resolve) => {
+    let remaining = seconds;
+    countdownEl.classList.add('show');
+    countdownNum.classList.remove('go');
+    countdownNum.textContent = remaining;
+    beep(660, 0.12);
+    const tick = setInterval(() => {
+      remaining--;
+      if (remaining > 0) {
+        countdownNum.textContent = remaining;
+        beep(660, 0.12);
+      } else {
+        clearInterval(tick);
+        countdownNum.classList.add('go');
+        countdownNum.textContent = 'GO';
+        beep(990, 0.25);
+        setTimeout(() => {
+          countdownEl.classList.remove('show');
+          resolve();
+        }, 450);
+      }
+    }, 1000);
+  });
+}
+
+// ---------- Download helpers ----------
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function timestamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+let statusTimer = null;
+function flashStatus(msg) {
+  statusEl.innerHTML = msg;
+  statusEl.classList.remove('hidden');
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => {
+    if (running) statusEl.classList.add('hidden');
+  }, 1800);
+}
+
+// ---------- Screenshot ----------
+async function takeScreenshot() {
+  if (!running) { flashStatus('Start the camera first.'); return; }
+  shotBtn.disabled = true; clipBtn.disabled = true;
+  await runCountdown(captureDelay);
+  await new Promise(r => requestAnimationFrame(r));
+  canvas.toBlob((blob) => {
+    if (blob) downloadBlob(blob, `repcounter-${timestamp()}.png`);
+    flashStatus('Screenshot saved \u2713');
+  }, 'image/png');
+  shotBtn.disabled = false; clipBtn.disabled = false;
+}
+
+// ---------- Video clip ----------
+async function recordClip() {
+  if (!running) { flashStatus('Start the camera first.'); return; }
+  if (recording) return;
+  shotBtn.disabled = true; clipBtn.disabled = true;
+
+  await runCountdown(captureDelay);
+
+  const stream = canvas.captureStream(30);
+  const types = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+  const mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+  const chunks = [];
+  try {
+    mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
+  } catch (e) {
+    flashStatus('Recording not supported on this browser.');
+    shotBtn.disabled = false; clipBtn.disabled = false;
+    return;
+  }
+
+  mediaRecorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, { type: mime || 'video/webm' });
+    const ext = (mime.indexOf('mp4') >= 0) ? 'mp4' : 'webm';
+    downloadBlob(blob, `repcounter-${timestamp()}.${ext}`);
+    recording = false;
+    clipBtn.classList.remove('recording');
+    clipBtn.innerHTML = '&#9658; Record clip';
+    flashStatus('Clip saved \u2713');
+    shotBtn.disabled = false; clipBtn.disabled = false;
+  };
+
+  recording = true;
+  clipBtn.classList.add('recording');
+  clipBtn.disabled = false;
+  clipBtn.innerHTML = '&#9632; Recording\u2026';
+  mediaRecorder.start();
+
+  setTimeout(() => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  }, CLIP_DURATION * 1000);
+}
+
+// ---------- Event wiring ----------
 startBtn.addEventListener('click', () => running ? stop() : start());
 flipBtn.addEventListener('click', flipCamera);
+shotBtn.addEventListener('click', takeScreenshot);
+clipBtn.addEventListener('click', recordClip);
 
 resetBtn.addEventListener('click', () => {
   reps = 0;
   state = 'up';
-  repCountEl.textContent = '00';
-  stateTextEl.textContent = '\u2014';
-  stateTextEl.style.color = '#fff';
+  hud.stateLabel = '\u2014';
+  hud.stateColor = '#fff';
 });
 
 document.querySelectorAll('.ex-btn').forEach(btn => {
@@ -598,11 +764,17 @@ document.querySelectorAll('.ex-btn').forEach(btn => {
     document.querySelectorAll('.ex-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentEx = btn.dataset.ex;
-    angleLabelEl.textContent = EXERCISES[currentEx].label;
     reps = 0;
     state = 'up';
-    repCountEl.textContent = '00';
-    stateTextEl.textContent = '\u2014';
+    hud.stateLabel = '\u2014';
+  });
+});
+
+document.querySelectorAll('.dchip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.dchip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    captureDelay = parseInt(chip.dataset.delay, 10);
   });
 });
 </script>
